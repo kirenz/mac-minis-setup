@@ -5,7 +5,7 @@ Mit diesem Setup läuft auf den zehn Mac Minis Ollama als Dienst. Die n8n-Instan
 ## Was eingerichtet wird
 
 - Ollama über Homebrew, als LaunchDaemon (`de.hdm.ollama`). Er läuft auch ohne angemeldeten Nutzer und startet nach Updates und Neustarts von selbst.
-- Die Modelle `qwen3.6:35b-a3b`, `gemma4:31b` und `qwen3-embedding:0.6b` in `/Users/Shared/ai-models/ollama` (zusammen ca. 44 GB).
+- Die Modelle `qwen3.8:27b`, `qwen3.6:35b-a3b` und `qwen3-embedding:0.6b` in `/Users/Shared/ai-models/ollama` (zusammen ca. 42 GB).
 - Ollama ist auf Port 11434 erreichbar. Ein Modell wird nach 30 Minuten ohne Anfrage aus dem Speicher entladen, damit die Gruppen im Labor davon nichts merken.
 - Falls noch die alte Ollama.app installiert ist, wird sie entfernt, weil sie denselben Port belegt. Die Modelle bleiben erhalten.
 

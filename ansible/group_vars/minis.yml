@@ -12,8 +12,8 @@ ollama_flash_attention: 1
 ollama_remove_app: true
 
 ollama_models:
+  - qwen3.8:27b
   - qwen3.6:35b-a3b
-  - gemma4:31b
   - qwen3-embedding:0.6b
 
 # So viele Minis laden gleichzeitig Modelle herunter.
