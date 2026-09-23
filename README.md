@@ -1,6 +1,54 @@
 
 # Mac minis – KI & Data Science Setup
 
+Zehn Mac Minis (M4 Pro, 64 GB) im Labor 016a. Sie laufen rund um die Uhr, werden zeitweise von Laborgruppen genutzt (oft nur als Zugang zu Servern) und dienen zusätzlich als **Ollama-Pool** für die Projekte auf dem HdM-Server. macOS-Updates macht die IT.
+
+## Architektur
+
+```
+n8n (HdM-Server) ──► LiteLLM-Gateway (HdM-Server, Stufe 2) ──► mini01..mini10 (Ollama :11434)
+```
+
+- Jeder Mini hat dieselben Modelle im gemeinsamen Cache `/Users/Shared/ai-models`.
+- Ollama läuft als LaunchDaemon (`de.hdm.ollama`), also auch ohne angemeldeten Nutzer und nach Neustarts.
+- Modelle werden nach 30 Minuten Leerlauf entladen, damit Laborgruppen den Speicher haben.
+- Ollama hat keine Zugangskontrolle: Port 11434 soll nur vom HdM-Server aus erreichbar sein (mit der IT klären).
+
+## Einrichtung mit Ansible (empfohlen)
+
+Ansible läuft auf dem eigenen Rechner und steuert die Minis per SSH. Voraussetzungen: HdM-Netz oder VPN, SSH-Schlüssel auf allen Minis, Hostnamen und Admin-Konto in `ansible/inventory.ini`.
+
+```bash
+brew install ansible
+```
+
+```bash
+cd ansible && ansible minis -m ping
+```
+
+Erst einen Mini einrichten, dann alle (`-K` fragt das sudo-Passwort ab):
+
+```bash
+cd ansible && ansible-playbook site.yml -K --limit mini01
+```
+
+```bash
+cd ansible && ansible-playbook site.yml -K
+```
+
+Status des Pools (Erreichbarkeit, vorhandene und geladene Modelle):
+
+```bash
+cd ansible && ansible-playbook status.yml
+```
+
+Modelle ändern: Liste `ollama_models` in `ansible/group_vars/minis.yml` anpassen, dann `ansible-playbook site.yml -K --tags models`.
+
+---
+
+# Manuelle Einrichtung (Referenz)
+
+
 
 ## 0) Vorbereitung
 
@@ -33,6 +81,7 @@ brew "uv"
 brew "postgresql@16"
 brew "pgvector"
 brew "qdrant"
+brew "ollama"
 brew "mysql"
 brew "mongodb-community"
 
@@ -43,7 +92,6 @@ cask "pgadmin4"
 cask "db-browser-for-sqlite"
 cask "docker" 
 cask "lm-studio"
-cask "ollama" 
 cask "quarto"
 cask "mongodb-compass"
 cask "mysqlworkbench"
@@ -152,7 +200,7 @@ uv --version
 **Ollama (Modell nur ziehen, nicht interaktiv)**
 
 ```bash
-ollama pull llama3.2:3b-instruct
+ollama pull qwen3-embedding:0.6b
 ```
 
 **PostgreSQL + pgvector**

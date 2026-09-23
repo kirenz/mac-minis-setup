@@ -1,0 +1,23 @@
+# Prüft von diesem Rechner aus (HdM-Netz oder VPN), welche Minis erreichbar sind,
+# welche Modelle vorhanden und welche gerade geladen sind.
+#   ansible-playbook status.yml
+
+- name: Status des Ollama-Pools
+  hosts: minis
+  gather_facts: false
+  tasks:
+    - name: Version und Modelle über das Netz abfragen
+      delegate_to: localhost
+      ansible.builtin.uri:
+        url: "http://{{ ansible_host }}:11434/api/{{ item }}"
+      loop: [version, tags, ps]
+      register: api
+      failed_when: false
+
+    - name: Zusammenfassung
+      ansible.builtin.debug:
+        msg:
+          erreichbar: "{{ api.results[0].status | default(0) == 200 }}"
+          version: "{{ api.results[0].json.version | default('-') }}"
+          modelle: "{{ api.results[1].json.models | default([]) | map(attribute='name') | list }}"
+          geladen: "{{ api.results[2].json.models | default([]) | map(attribute='name') | list }}"
