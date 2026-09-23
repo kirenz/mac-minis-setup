@@ -1,27 +1,20 @@
-# Gemeinsame Einstellungen für alle Minis.
-
 homebrew_prefix: /opt/homebrew
 models_root: /Users/Shared/ai-models
 
-# Ollama läuft als LaunchDaemon unter dem Admin-Konto, auch ohne angemeldeten Nutzer
-# und nach Neustarts durch IT-Updates.
 ollama_bind: "0.0.0.0:11434"
-ollama_keep_alive: 30m          # Modell nach 30 min Leerlauf entladen (Speicher für Laborgruppen frei)
-ollama_num_parallel: 2          # gleichzeitige Anfragen pro Modell
+ollama_keep_alive: 30m
+ollama_num_parallel: 2
 ollama_max_loaded_models: 2
 ollama_context_length: 16384
 ollama_flash_attention: 1
 
-# Ollama.app (Cask aus dem alten Setup) startet bei der Anmeldung einen eigenen Server auf
-# Port 11434 und kollidiert mit dem Daemon. Deshalb wird die App entfernt; die Modelle
-# im gemeinsamen Cache bleiben erhalten.
+# Die alte Ollama.app belegt denselben Port, deshalb wird sie entfernt.
 ollama_remove_app: true
 
-# Modelle für den Pool (Tags von ollama.com/library, Stand 2026-09-23).
 ollama_models:
-  - qwen3.6:35b-a3b             # MoE, schnell, Standardmodell
-  - gemma4:31b                  # dichtes Modell, Vergleich/Evaluation
-  - qwen3-embedding:0.6b        # Embeddings, mehrsprachig
+  - qwen3.6:35b-a3b
+  - gemma4:31b
+  - qwen3-embedding:0.6b
 
-# Wie viele Minis gleichzeitig Modelle laden (schont die Leitung).
+# So viele Minis laden gleichzeitig Modelle herunter.
 model_pull_throttle: 3

@@ -1,14 +1,9 @@
-# Richtet Ollama als Pool-Knoten auf allen Minis ein.
-#   ansible-playbook site.yml --limit mini01   # erst ein Mini
-#   ansible-playbook site.yml                  # dann alle
-#   ansible-playbook site.yml --tags models    # nur Modelle nachziehen
-
-- name: Mac Minis als Ollama-Pool einrichten
+- name: Ollama auf den Mac Minis einrichten
   hosts: minis
   environment:
     PATH: "{{ homebrew_prefix }}/bin:/usr/bin:/bin:/usr/sbin:/sbin"
   tasks:
-    - name: Gemeinsamen Modell-Cache anlegen
+    - name: Ordner für die Modelle anlegen
       become: true
       ansible.builtin.file:
         path: "{{ models_root }}/{{ item }}"
@@ -78,7 +73,7 @@
       when: daemon_loaded.rc != 0
       tags: [ollama]
 
-    - name: Handler jetzt ausführen (Ollama muss für die Modelle laufen)
+    - name: Ollama neu starten, falls sich etwas geändert hat
       ansible.builtin.meta: flush_handlers
       tags: [ollama]
 

@@ -1,8 +1,4 @@
-# Prüft von diesem Rechner aus (HdM-Netz oder VPN), welche Minis erreichbar sind,
-# welche Modelle vorhanden und welche gerade geladen sind.
-#   ansible-playbook status.yml
-
-- name: Status des Ollama-Pools
+- name: Status der Mac Minis
   hosts: minis
   gather_facts: false
   tasks:

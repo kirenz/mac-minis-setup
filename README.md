@@ -1,264 +1,48 @@
+# Mac Minis im Labor 016a: Ollama
 
-# Mac minis – KI & Data Science Setup
+Mit diesem Setup läuft auf den zehn Mac Minis Ollama als Dienst. Die n8n-Instanzen auf meinem HdM-Server (kirenz.iuk.hdm-stuttgart.de) greifen darauf zu, damit wir in den Projekten mit vertraulichen Daten lokal arbeiten können.
 
-Zehn Mac Minis (M4 Pro, 64 GB) im Labor 016a. Sie laufen rund um die Uhr, werden zeitweise von Laborgruppen genutzt (oft nur als Zugang zu Servern) und dienen zusätzlich als **Ollama-Pool** für die Projekte auf dem HdM-Server. macOS-Updates macht die IT.
+## Was eingerichtet wird
 
-## Architektur
+- Ollama über Homebrew, als LaunchDaemon (`de.hdm.ollama`). Er läuft auch ohne angemeldeten Nutzer und startet nach Updates und Neustarts von selbst.
+- Die Modelle `qwen3.6:35b-a3b`, `gemma4:31b` und `qwen3-embedding:0.6b` in `/Users/Shared/ai-models/ollama` (zusammen ca. 44 GB).
+- Ollama ist auf Port 11434 erreichbar. Ein Modell wird nach 30 Minuten ohne Anfrage aus dem Speicher entladen, damit die Gruppen im Labor davon nichts merken.
+- Falls noch die alte Ollama.app installiert ist, wird sie entfernt, weil sie denselben Port belegt. Die Modelle bleiben erhalten.
 
-```
-n8n (HdM-Server) ──► LiteLLM-Gateway (HdM-Server, Stufe 2) ──► mini01..mini10 (Ollama :11434)
-```
+## Was du vorher brauchst
 
-- Jeder Mini hat dieselben Modelle im gemeinsamen Cache `/Users/Shared/ai-models`.
-- Ollama läuft als LaunchDaemon (`de.hdm.ollama`), also auch ohne angemeldeten Nutzer und nach Neustarts.
-- Modelle werden nach 30 Minuten Leerlauf entladen, damit Laborgruppen den Speicher haben. Die drei Modelle belegen zusammen rund 44 GB Platte pro Mini.
-- Ollama hat keine Zugangskontrolle: Port 11434 soll nur vom HdM-Server aus erreichbar sein (mit der IT klären).
+- SSH-Zugriff auf die Minis (HdM-Netz oder VPN) mit einem Admin-Konto, das sudo darf.
+- Homebrew auf den Minis, installiert mit genau diesem Konto.
+- Port 11434 bitte nur für meinen HdM-Server freigeben, Ollama hat selbst keine Zugangskontrolle.
 
-## Einrichtung mit Ansible (empfohlen)
+## Einrichten
 
-Ansible läuft auf dem eigenen Rechner (Mac oder Linux) und steuert die Minis per SSH. Auf den Minis wird nichts zusätzlich installiert.
+1. Repo klonen:
 
-**Voraussetzungen**
+   ```bash
+   git clone https://github.com/kirenz/mac-minis-setup.git && cd mac-minis-setup
+   ```
 
-- Zugriff aus dem HdM-Netz oder über VPN.
-- Ein Admin-Konto auf jedem Mini mit SSH-Schlüssel (Entfernte Anmeldung aktiv) und sudo-Rechten.
-- Homebrew unter `/opt/homebrew`, installiert von **diesem** Konto (Homebrew läuft nicht als root).
-- Port 11434 ist vor Inbetriebnahme so gefiltert, dass nur der n8n-Server (kirenz.iuk.hdm-stuttgart.de) zugreifen kann. Ollama hat keine eigene Zugangskontrolle.
+2. In `ansible/inventory.ini` die Hostnamen und das Konto eintragen.
 
-**Inventar ausfüllen** (`ansible/inventory.ini`), Beispiel:
+3. Skript starten:
 
-```ini
-[minis]
-mini01 ansible_host=mini01.example.hdm-stuttgart.de
+   ```bash
+   ./setup.sh
+   ```
 
-[minis:vars]
-ansible_user=labadmin
-```
+Das Skript installiert bei Bedarf Ansible, prüft die Verbindung zu allen Minis, fragt einmal nach dem sudo-Passwort und richtet zuerst mini01 ein. Danach zeigt es dir den Status. Wenn der passt, bestätigst du, und es macht mit den restlichen Minis weiter.
 
-```bash
-brew install ansible
-```
+Du kannst das Skript jederzeit noch mal laufen lassen, es ändert nur, was fehlt.
 
-```bash
-cd ansible && ansible minis -m ping
-```
+## Später
 
-Erst einen Mini einrichten, dann alle (`-K` fragt das sudo-Passwort ab):
-
-```bash
-cd ansible && ansible-playbook site.yml -K --limit mini01
-```
-
-```bash
-cd ansible && ansible-playbook site.yml -K
-```
-
-Nach dem ersten Mini prüfen, bevor alle folgen: `status.yml` muss für `mini01` `erreichbar: true` und die drei Modelle zeigen, und von einem anderen Rechner als dem n8n-Server darf Port 11434 nicht erreichbar sein.
-
-Status des Pools (Erreichbarkeit, vorhandene und geladene Modelle):
+Status aller Minis:
 
 ```bash
 cd ansible && ansible-playbook status.yml
 ```
 
-Modelle ändern (nach der Ersteinrichtung): Liste `ollama_models` in `ansible/group_vars/minis.yml` anpassen, dann `ansible-playbook site.yml -K --tags models`.
+Für ein anderes Modell die Liste `ollama_models` in `ansible/group_vars/minis.yml` anpassen und `./setup.sh` erneut starten.
 
----
-
-# Manuelle Einrichtung (Referenz)
-
-
-
-## 0) Vorbereitung
-
-**Xcode Command Line Tools**
-```bash
-xcode-select --install
-````
-
-**Homebrew**
-
-```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-```
-
----
-
-## 1) Brewfile anlegen 
-
-**Brewfile erzeugen (im aktuellen Ordner)**
-
-```bash
-cat > ./Brewfile <<'EOF'
-tap "homebrew/cask"
-tap "mongodb/brew"
-
-brew "git"
-brew "gh"
-brew "wget"
-brew "uv"
-brew "postgresql@16"
-brew "pgvector"
-brew "qdrant"
-brew "ollama"
-brew "mysql"
-brew "mongodb-community"
-
-cask "iterm2"
-cask "visual-studio-code"
-cask "google-cloud-sdk"
-cask "pgadmin4"
-cask "db-browser-for-sqlite"
-cask "docker" 
-cask "lm-studio"
-cask "quarto"
-cask "mongodb-compass"
-cask "mysqlworkbench"
-cask "powershell"
-EOF
-```
-
-**Brewfile installieren**
-
-```bash
-brew bundle --file=./Brewfile
-```
-
----
-
-## 2) Node/npm nvm
-
-**nvm installieren**
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash
-```
-
-**nvm in die Shell laden (sofort in aktueller Session)**
-
-```bash
-export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
-```
-
-**LTS-Node installieren & als Default setzen**
-
-```bash
-nvm install --lts
-```
-
-```bash
-nvm alias default 'lts/*'
-```
-
-**Versionen prüfen**
-
-```bash
-node -v
-```
-
-```bash
-npm -v
-```
-
----
-
-## 3) Gemeinsame Model-Caches (spart SSD/Traffic)
-
-**Verzeichnisse anlegen & Rechte setzen**
-
-```bash
-sudo mkdir -p /Users/Shared/ai-models/{ollama,huggingface,lmstudio} && sudo chown -R root:staff /Users/Shared/ai-models && sudo chmod -R 2775 /Users/Shared/ai-models
-```
-
-**Env-Vars systemweit für Zsh setzen (Ollama/HF)**
-
-```bash
-sudo /bin/sh -c 'printf "\nexport OLLAMA_MODELS=/Users/Shared/ai-models/ollama\nexport HF_HOME=/Users/Shared/ai-models/huggingface\n" >> /etc/zshrc'
-```
-
-> Hinweis: **LM Studio** Pfad bitte in der App unter *Settings → Storage/Models* auf `/Users/Shared/ai-models/lmstudio` umstellen.
-
----
-
-## 4) Dienste starten
-
-**PostgreSQL**
-
-```bash
-brew services start postgresql@16
-```
-
-**Qdrant**
-
-```bash
-brew services start qdrant
-```
-
-**MongoDB Community**
-
-```bash
-brew services start mongodb-community
-```
-
-**MySQL**
-
-```bash
-brew services start mysql
-```
-
----
-
-## 5) Schnelle Funktionschecks
-
-**uv**
-
-```bash
-uv --version
-```
-
-**Ollama (Modell nur ziehen, nicht interaktiv)**
-
-```bash
-ollama pull qwen3-embedding:0.6b
-```
-
-**PostgreSQL + pgvector**
-
-```bash
-createdb labtest && psql labtest -c "CREATE EXTENSION IF NOT EXISTS vector;"
-```
-
-**Docker**
-
-```bash
-docker --version
-```
-
-**PowerShell**
-
-```bash
-pwsh -NoLogo -NoProfile -Command '$PSVersionTable.PSVersion.ToString()'
-```
-
-**Quarto**
-
-```bash
-quarto --version
-```
-
----
-
-## 6) VS Code
-
-**VS Code starten**
-
-```bash
-open -a "Visual Studio Code"
-```
-
-**Extensions importieren**
-
-[VS Code extensions (Profil von Jan Kirenz)](https://vscode.dev/profile/github/e0660f06e905a92816a8ca238337f902)
-
-
-
+Die alte Anleitung für die manuelle Einrichtung der Data-Science-Tools steht in [manuelle-einrichtung.md](manuelle-einrichtung.md).
