@@ -11,12 +11,29 @@ n8n (HdM-Server) ──► LiteLLM-Gateway (HdM-Server, Stufe 2) ──► mini0
 
 - Jeder Mini hat dieselben Modelle im gemeinsamen Cache `/Users/Shared/ai-models`.
 - Ollama läuft als LaunchDaemon (`de.hdm.ollama`), also auch ohne angemeldeten Nutzer und nach Neustarts.
-- Modelle werden nach 30 Minuten Leerlauf entladen, damit Laborgruppen den Speicher haben.
+- Modelle werden nach 30 Minuten Leerlauf entladen, damit Laborgruppen den Speicher haben. Die drei Modelle belegen zusammen rund 44 GB Platte pro Mini.
 - Ollama hat keine Zugangskontrolle: Port 11434 soll nur vom HdM-Server aus erreichbar sein (mit der IT klären).
 
 ## Einrichtung mit Ansible (empfohlen)
 
-Ansible läuft auf dem eigenen Rechner und steuert die Minis per SSH. Voraussetzungen: HdM-Netz oder VPN, SSH-Schlüssel auf allen Minis, Hostnamen und Admin-Konto in `ansible/inventory.ini`.
+Ansible läuft auf dem eigenen Rechner (Mac oder Linux) und steuert die Minis per SSH. Auf den Minis wird nichts zusätzlich installiert.
+
+**Voraussetzungen**
+
+- Zugriff aus dem HdM-Netz oder über VPN.
+- Ein Admin-Konto auf jedem Mini mit SSH-Schlüssel (Entfernte Anmeldung aktiv) und sudo-Rechten.
+- Homebrew unter `/opt/homebrew`, installiert von **diesem** Konto (Homebrew läuft nicht als root).
+- Port 11434 ist vor Inbetriebnahme so gefiltert, dass nur der n8n-Server (kirenz.iuk.hdm-stuttgart.de) zugreifen kann. Ollama hat keine eigene Zugangskontrolle.
+
+**Inventar ausfüllen** (`ansible/inventory.ini`), Beispiel:
+
+```ini
+[minis]
+mini01 ansible_host=mini01.example.hdm-stuttgart.de
+
+[minis:vars]
+ansible_user=labadmin
+```
 
 ```bash
 brew install ansible
@@ -36,13 +53,15 @@ cd ansible && ansible-playbook site.yml -K --limit mini01
 cd ansible && ansible-playbook site.yml -K
 ```
 
+Nach dem ersten Mini prüfen, bevor alle folgen: `status.yml` muss für `mini01` `erreichbar: true` und die drei Modelle zeigen, und von einem anderen Rechner als dem n8n-Server darf Port 11434 nicht erreichbar sein.
+
 Status des Pools (Erreichbarkeit, vorhandene und geladene Modelle):
 
 ```bash
 cd ansible && ansible-playbook status.yml
 ```
 
-Modelle ändern: Liste `ollama_models` in `ansible/group_vars/minis.yml` anpassen, dann `ansible-playbook site.yml -K --tags models`.
+Modelle ändern (nach der Ersteinrichtung): Liste `ollama_models` in `ansible/group_vars/minis.yml` anpassen, dann `ansible-playbook site.yml -K --tags models`.
 
 ---
 

@@ -41,6 +41,18 @@
       notify: Ollama neu starten
       tags: [ollama]
 
+    - name: Logdatei für den Daemon-Nutzer anlegen
+      become: true
+      ansible.builtin.file:
+        path: /var/log/ollama.log
+        state: touch
+        owner: "{{ ansible_user }}"
+        group: staff
+        mode: "0644"
+        modification_time: preserve
+        access_time: preserve
+      tags: [ollama]
+
     - name: LaunchDaemon für Ollama schreiben
       become: true
       ansible.builtin.template:
@@ -52,16 +64,23 @@
       notify: Ollama neu starten
       tags: [ollama]
 
+    - name: Prüfen, ob der LaunchDaemon geladen ist
+      become: true
+      ansible.builtin.command: launchctl print system/de.hdm.ollama
+      register: daemon_loaded
+      changed_when: false
+      failed_when: false
+      tags: [ollama, models]
+
     - name: LaunchDaemon laden
       become: true
       ansible.builtin.command: launchctl bootstrap system /Library/LaunchDaemons/de.hdm.ollama.plist
-      register: bootstrap
-      changed_when: bootstrap.rc == 0
-      failed_when: bootstrap.rc not in [0, 5, 37]   # 5/37 = bereits geladen
+      when: daemon_loaded.rc != 0
       tags: [ollama]
 
     - name: Handler jetzt ausführen (Ollama muss für die Modelle laufen)
       ansible.builtin.meta: flush_handlers
+      tags: [ollama]
 
     - name: Warten, bis Ollama antwortet
       ansible.builtin.uri:
