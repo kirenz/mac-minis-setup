@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>de.hdm.ollama-proxy</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>{{ homebrew_prefix }}/bin/caddy</string>
+    <string>run</string>
+    <string>--config</string>
+    <string>{{ config_dir }}/Caddyfile</string>
+    <string>--adapter</string>
+    <string>caddyfile</string>
+  </array>
+  <key>UserName</key>
+  <string>{{ ollama_service_user }}</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>HOME</key>
+    <string>{{ ollama_service_home }}</string>
+  </dict>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>StandardOutPath</key>
+  <string>/var/log/ollama-proxy.log</string>
+  <key>StandardErrorPath</key>
+  <string>/var/log/ollama-proxy.log</string>
+</dict>
+</plist>

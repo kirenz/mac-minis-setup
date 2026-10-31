@@ -1,0 +1,2 @@
+# Zugangstoken für den Proxy, wird von setup.sh erzeugt
+ansible/proxy-token

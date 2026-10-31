@@ -1,0 +1,47 @@
+# Rückbau nach dem Projekt (Februar 2027). Entfernt Dienste, Proxy, Modelle und Dienstkonto.
+# Aufruf: ansible-playbook rueckbau.yml --ask-become-pass
+- name: Rückbau Ollama
+  hosts: minis
+  become: true
+  tasks:
+    - name: LaunchDaemons stoppen
+      ansible.builtin.command: launchctl bootout system/{{ item }}
+      loop: [de.hdm.ollama, de.hdm.ollama-proxy]
+      failed_when: false
+
+    - name: Gesicherte Energieeinstellungen anzeigen (nur Dauerbetrieb)
+      ansible.builtin.command: cat "{{ config_dir }}/pmset-vorher.txt"
+      register: pmset_vorher
+      changed_when: false
+      failed_when: false
+
+    - name: Hinweis zu den Energieeinstellungen
+      ansible.builtin.debug:
+        msg: "Vorherige Einstellungen bitte von Hand wiederherstellen: {{ pmset_vorher.stdout_lines | default(['nicht gesichert']) }}"
+      when: pmset_vorher.rc == 0
+
+    - name: Dateien entfernen
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /Library/LaunchDaemons/de.hdm.ollama.plist
+        - /Library/LaunchDaemons/de.hdm.ollama-proxy.plist
+        - /etc/newsyslog.d/de.hdm.ollama.conf
+        - /var/log/ollama.log
+        - /var/log/ollama-proxy.log
+        - "{{ config_dir }}"
+        - "{{ models_root }}/ollama"
+        - "{{ ollama_service_home }}"
+
+    - name: Dienstkonto löschen
+      ansible.builtin.command: sysadminctl -deleteUser {{ ollama_service_user }}
+      failed_when: false
+
+    - name: Ollama und Caddy deinstallieren
+      become: false
+      environment:
+        PATH: "{{ homebrew_prefix }}/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+      community.general.homebrew:
+        name: [ollama, caddy]
+        state: absent

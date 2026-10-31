@@ -1,0 +1,8 @@
+# Die n8n-Instanzen schicken auch parallele Anfragen. Ein Sprachmodell plus
+# Embedding passt mit zwei parallelen Anfragen gut in 64 GB.
+ollama_num_parallel: 2
+ollama_max_loaded_models: 2
+
+ollama_models:
+  - qwen3.8:27b
+  - qwen3-embedding:0.6b

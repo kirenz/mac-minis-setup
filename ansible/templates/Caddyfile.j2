@@ -1,0 +1,23 @@
+{
+	admin off
+	auto_https off
+}
+
+:{{ proxy_port }} {
+	# Modelle laden, löschen oder verändern geht nur lokal auf dem Mini, nicht über das Netz.
+	@verwaltung path /api/pull* /api/push* /api/delete* /api/create* /api/copy* /api/blobs/*
+	@token header Authorization "Bearer {{ ollama_proxy_token }}"
+
+	route {
+		respond @verwaltung "Modellverwaltung nur lokal auf dem Mini" 403
+		reverse_proxy @token 127.0.0.1:11434 {
+			# Ollama nimmt auf 127.0.0.1 nur Anfragen mit lokalem Host-Header an.
+			header_up Host 127.0.0.1:11434
+			flush_interval -1
+			transport http {
+				read_timeout 15m
+			}
+		}
+		respond "Token fehlt oder ist falsch" 401
+	}
+}

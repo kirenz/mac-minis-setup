@@ -13,8 +13,14 @@ if grep -q "=TODO" inventory.ini; then
   exit 1
 fi
 
-echo "Verbindung zu den Minis prüfen ..."
-ansible minis -m ping -o
+if [[ ! -s proxy-token ]]; then
+  echo "Ich erzeuge das Zugangstoken für den Proxy (ansible/proxy-token)."
+  umask 077
+  openssl rand -hex 32 > proxy-token
+fi
+
+echo "Verbindung zu den Minis prüfen (beim ersten Mal bitte die Host-Schlüssel bestätigen) ..."
+ansible minis -m ping -o -f 1
 
 read -r -s -p "sudo-Passwort für die Minis: " PW
 echo
@@ -27,7 +33,12 @@ first=$(ansible minis --list-hosts | sed -n 2p | xargs)
 
 echo "Einrichtung auf $first ..."
 ansible-playbook site.yml --limit "$first" --become-password-file "$pwfile"
-ansible-playbook status.yml --limit "$first"
+ansible-playbook status.yml --limit "$first" --become-password-file "$pwfile"
+
+read -r -p "Abnahmetest auf $first laufen lassen? Dauert einige Minuten (j/n): " answer
+if [[ "$answer" == "j" ]]; then
+  ansible-playbook test.yml --limit "$first"
+fi
 
 read -r -p "Passt das? Dann richte ich jetzt alle anderen ein (j/n): " answer
 if [[ "$answer" != "j" ]]; then
@@ -35,4 +46,4 @@ if [[ "$answer" != "j" ]]; then
 fi
 
 ansible-playbook site.yml --become-password-file "$pwfile"
-ansible-playbook status.yml
+ansible-playbook status.yml --become-password-file "$pwfile"

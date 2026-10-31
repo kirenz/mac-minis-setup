@@ -10,11 +10,11 @@
     <string>serve</string>
   </array>
   <key>UserName</key>
-  <string>{{ ansible_user }}</string>
+  <string>{{ ollama_service_user }}</string>
   <key>EnvironmentVariables</key>
   <dict>
     <key>HOME</key>
-    <string>/Users/{{ ansible_user }}</string>
+    <string>{{ ollama_service_home }}</string>
     <key>OLLAMA_HOST</key>
     <string>{{ ollama_bind }}</string>
     <key>OLLAMA_MODELS</key>
@@ -29,6 +29,10 @@
     <string>{{ ollama_context_length }}</string>
     <key>OLLAMA_FLASH_ATTENTION</key>
     <string>{{ ollama_flash_attention }}</string>
+    <key>OLLAMA_KV_CACHE_TYPE</key>
+    <string>{{ ollama_kv_cache_type }}</string>
+    <key>OLLAMA_NO_CLOUD</key>
+    <string>1</string>
   </dict>
   <key>RunAtLoad</key>
   <true/>

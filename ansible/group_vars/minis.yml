@@ -1,22 +1,39 @@
 homebrew_prefix: /opt/homebrew
 models_root: /Users/Shared/ai-models
+config_dir: /Library/Application Support/de.hdm.ollama
 
-ollama_bind: "0.0.0.0:11434"
+# Ollama läuft unter einem eigenen Dienstkonto ohne Admin-Rechte.
+# Rollenkonten müssen mit _ beginnen und eine UID zwischen 200 und 400 haben.
+ollama_service_user: _ollama
+ollama_service_uid: 299
+ollama_service_home: "{{ models_root }}/home"
+
+# Ollama ist nur lokal erreichbar. Von außen geht es nur über den Proxy mit Token.
+ollama_bind: "127.0.0.1:11434"
+proxy_port: 11435
+ollama_proxy_token: "{{ lookup('file', playbook_dir ~ '/proxy-token') }}"
+
 ollama_keep_alive: 30m
-ollama_num_parallel: 2
-ollama_max_loaded_models: 2
+# Auf den Labor-Minis läuft pro Gerät eine Rolle, ein geladenes Modell reicht.
+ollama_num_parallel: 1
+ollama_max_loaded_models: 1
+# Bitte nicht entfernen: Ohne feste Angabe wählt Ollama bei 64 GB bis zu 256k Tokens
+# Kontext, und der Speicher reicht nicht mehr.
 ollama_context_length: 16384
 ollama_flash_attention: 1
+# Halbiert den Speicher für den Kontext (braucht Flash Attention).
+ollama_kv_cache_type: q8_0
 
 # Die alte Ollama.app belegt denselben Port, deshalb wird sie entfernt.
 ollama_remove_app: true
 
+# Tags immer ausschreiben (:latest), sonst lädt jeder Lauf das Modell neu.
 ollama_models:
   - qwen3.8:27b
   - qwen3.6:35b-a3b
   - qwen3-embedding:0.6b
   # Bildmodell, in Ollama auf dem Mac noch experimentell.
-  - x/z-image-turbo
+  - x/z-image-turbo:latest
 
 # So viele Minis laden gleichzeitig Modelle herunter.
 model_pull_throttle: 3

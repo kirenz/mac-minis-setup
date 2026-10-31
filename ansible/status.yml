@@ -9,16 +9,39 @@
       register: api
       failed_when: false
 
-    - name: Ruhezustand abfragen
-      ansible.builtin.command: pmset -g
+    - name: Proxy ohne Token abfragen (soll 401 liefern)
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ proxy_port }}/api/version"
+        status_code: [401, -1]
+      register: proxy
+      failed_when: false
+
+    - name: Konto der Ollama-Instanz abfragen
+      become: true
+      ansible.builtin.shell: lsof -nP -iTCP:11434 -sTCP:LISTEN -Fu | sed -n 's/^u//p' | head -1
+      register: listener_uid
+      changed_when: false
+      failed_when: false
+
+    - name: Energieeinstellungen und geplante Ereignisse abfragen
+      ansible.builtin.shell: pmset -g; echo ---; pmset -g sched
       register: power
+      changed_when: false
+
+    - name: Freien Plattenplatz abfragen
+      ansible.builtin.shell: df -g /Users/Shared | awk 'NR==2 {print $4 " GB frei"}'
+      register: disk
       changed_when: false
 
     - name: Zusammenfassung
       ansible.builtin.debug:
         msg:
-          laeuft: "{{ api.results[0].status | default(0) == 200 }}"
+          ollama_laeuft: "{{ api.results[0].status | default(0) == 200 }}"
+          dienstkonto_ok: "{{ listener_uid.stdout | trim == (ollama_service_uid | string) }}"
+          proxy_sperrt_ohne_token: "{{ proxy.status | default(0) == 401 }}"
           version: "{{ api.results[0].json.version | default('-') }}"
           modelle: "{{ api.results[1].json.models | default([]) | map(attribute='name') | list }}"
           geladen: "{{ api.results[2].json.models | default([]) | map(attribute='name') | list }}"
-          ruhezustand: "{{ power.stdout_lines | select('search', '^ sleep') | first | default('-') | trim }}"
+          ruhezustand: "{{ power.stdout_lines | select('search', '^ (sleep|autorestart) ') | map('trim') | list }}"
+          geplant: "{{ power.stdout_lines | select('search', 'wake|poweron|shutdown|sleep at') | map('trim') | list }}"
+          platte: "{{ disk.stdout }}"

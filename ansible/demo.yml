@@ -1,0 +1,30 @@
+# Demo zur International Week.
+#
+# Einmalig vorher (IT, Admin-Konto): Einschalt- bzw. Weckzeit für Probetag und Demotag planen.
+#   ansible-playbook demo.yml --tags termin -e 'demo_weckzeit="11/24/26 07:30:00"' --ask-become-pass
+#
+# Am Morgen des Probe- bzw. Demotags (geht auch mit einem normalen Konto):
+#   ansible-playbook demo.yml -u <konto>
+# Die Minis bleiben dann für demo_wach_stunden wach. Danach gilt wieder die normale Einstellung,
+# es wird nichts dauerhaft verändert.
+- name: Demo-Minis vorbereiten
+  hosts: demo
+  gather_facts: false
+  vars:
+    demo_wach_stunden: 8
+  tasks:
+    - name: Einmaliges Einschalten bzw. Wecken planen
+      become: true
+      ansible.builtin.command: pmset schedule wakeorpoweron "{{ demo_weckzeit }}"
+      when: demo_weckzeit is defined
+      tags: [never, termin]
+
+    - name: Minis für die Demo wach halten (ohne Einstellungen zu ändern)
+      ansible.builtin.command: caffeinate -dims -t {{ demo_wach_stunden * 3600 }}
+      async: "{{ demo_wach_stunden * 3600 + 60 }}"
+      poll: 0
+      changed_when: true
+
+    - name: Ollama auf dem Mini prüfen
+      ansible.builtin.uri:
+        url: http://127.0.0.1:11434/api/version
