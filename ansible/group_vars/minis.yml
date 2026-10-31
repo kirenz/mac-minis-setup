@@ -15,6 +15,8 @@ ollama_models:
   - qwen3.8:27b
   - qwen3.6:35b-a3b
   - qwen3-embedding:0.6b
+  # Bildmodell, in Ollama auf dem Mac noch experimentell.
+  - x/z-image-turbo
 
 # So viele Minis laden gleichzeitig Modelle herunter.
 model_pull_throttle: 3

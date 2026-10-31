@@ -105,3 +105,12 @@
     - name: Ollama neu starten
       become: true
       ansible.builtin.command: launchctl kickstart -k system/de.hdm.ollama
+
+- name: Dauerbetrieb ohne Ruhezustand
+  hosts: dauerbetrieb
+  become: true
+  tasks:
+    - name: Ruhezustand ausschalten, nach Stromausfall neu starten, Wake on LAN
+      ansible.builtin.command: pmset -a sleep 0 disksleep 0 autorestart 1 womp 1
+      changed_when: false
+      tags: [power]

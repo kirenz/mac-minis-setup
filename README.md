@@ -1,19 +1,27 @@
 # Mac Minis im Labor 016a: Ollama
 
-Mit diesem Setup läuft auf den zehn Mac Minis Ollama als Dienst. Die n8n-Instanzen auf meinem HdM-Server (kirenz.iuk.hdm-stuttgart.de) greifen darauf zu, damit wir in den Projekten mit vertraulichen Daten lokal arbeiten können.
+Mit diesem Setup läuft auf den Mac Minis Ollama als Dienst. Wir nutzen es für zwei Dinge:
+
+- **KI in der Verwaltung:** Die n8n-Instanzen auf der VM `ki-in-der-verwaltung` nutzen zwei Minis im Dauerbetrieb, damit vertrauliche Daten im Haus bleiben.
+- **Demo zur International Week (24.11.2026):** KI-Agenten erstellen auf mehreren Minis live Texte und ein Kampagnenbild.
 
 ## Was eingerichtet wird
 
 - Ollama über Homebrew, als LaunchDaemon (`de.hdm.ollama`). Er läuft auch ohne angemeldeten Nutzer und startet nach Updates und Neustarts von selbst.
-- Die Modelle `qwen3.8:27b`, `qwen3.6:35b-a3b` und `qwen3-embedding:0.6b` in `/Users/Shared/ai-models/ollama` (zusammen ca. 42 GB).
+- Die Sprachmodelle `qwen3.8:27b`, `qwen3.6:35b-a3b` und `qwen3-embedding:0.6b` sowie das Bildmodell `x/z-image-turbo` in `/Users/Shared/ai-models/ollama`. Die Bilderzeugung ist in Ollama auf dem Mac noch experimentell.
 - Ollama ist auf Port 11434 erreichbar. Ein Modell wird nach 30 Minuten ohne Anfrage aus dem Speicher entladen, damit die Gruppen im Labor davon nichts merken.
+- Auf den Minis in der Gruppe `dauerbetrieb` (in `ansible/inventory.ini`) wird der Ruhezustand ausgeschaltet. Nach einem Stromausfall starten sie neu.
 - Falls noch die alte Ollama.app installiert ist, wird sie entfernt, weil sie denselben Port belegt. Die Modelle bleiben erhalten.
 
 ## Was du vorher brauchst
 
-- SSH-Zugriff auf die Minis (HdM-Netz oder VPN) mit einem Admin-Konto, das sudo darf.
+- SSH-Zugriff auf die Minis (HdM-Netz oder VPN) mit einem Admin-Konto, das sudo darf. Das braucht es nur für die Einrichtung.
 - Homebrew auf den Minis, installiert mit genau diesem Konto.
-- Port 11434 bitte nur für meinen HdM-Server freigeben, Ollama hat selbst keine Zugangskontrolle.
+- Ollama hat selbst keine Zugangskontrolle. Deshalb bitte Port 11434 einschränken:
+  - Minis im Dauerbetrieb: nur für die VM `ki-in-der-verwaltung` (141.62.116.2)
+  - alle anderen Minis: nur im Labornetz
+
+Für spätere neue Modelle reicht ein normales Konto ohne Admin-Rechte. `ollama pull` lädt über den laufenden Dienst, dafür braucht es kein sudo.
 
 ## Einrichten
 
@@ -23,7 +31,7 @@ Mit diesem Setup läuft auf den zehn Mac Minis Ollama als Dienst. Die n8n-Instan
    git clone https://github.com/kirenz/mac-minis-setup.git && cd mac-minis-setup
    ```
 
-2. In `ansible/inventory.ini` die Hostnamen und das Konto eintragen.
+2. In `ansible/inventory.ini` die Hostnamen und das Konto eintragen. Unter `[dauerbetrieb]` stehen die beiden Minis für die VM, bei Bedarf andere eintragen.
 
 3. Skript starten:
 
@@ -37,7 +45,7 @@ Du kannst das Skript jederzeit noch mal laufen lassen, es ändert nur, was fehlt
 
 ## Später
 
-Status aller Minis:
+Status aller Minis (Dienst, Modelle, Ruhezustand):
 
 ```bash
 cd ansible && ansible-playbook status.yml

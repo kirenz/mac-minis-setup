@@ -2,18 +2,23 @@
   hosts: minis
   gather_facts: false
   tasks:
-    - name: Version und Modelle über das Netz abfragen
-      delegate_to: localhost
+    - name: Version und Modelle auf dem Mini selbst abfragen
       ansible.builtin.uri:
-        url: "http://{{ ansible_host }}:11434/api/{{ item }}"
+        url: "http://127.0.0.1:11434/api/{{ item }}"
       loop: [version, tags, ps]
       register: api
       failed_when: false
 
+    - name: Ruhezustand abfragen
+      ansible.builtin.command: pmset -g
+      register: power
+      changed_when: false
+
     - name: Zusammenfassung
       ansible.builtin.debug:
         msg:
-          erreichbar: "{{ api.results[0].status | default(0) == 200 }}"
+          laeuft: "{{ api.results[0].status | default(0) == 200 }}"
           version: "{{ api.results[0].json.version | default('-') }}"
           modelle: "{{ api.results[1].json.models | default([]) | map(attribute='name') | list }}"
           geladen: "{{ api.results[2].json.models | default([]) | map(attribute='name') | list }}"
+          ruhezustand: "{{ power.stdout_lines | select('search', '^ sleep') | first | default('-') | trim }}"
