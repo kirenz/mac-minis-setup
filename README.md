@@ -64,8 +64,9 @@ Das Skript kann jederzeit erneut laufen. Es ändert nur, was fehlt. Ollama und C
 
 ## In n8n nutzen
 
-- Adresse: `http://<mini01>:11435`, Token als Bearer-Token im Header `Authorization`
-- Am einfachsten über die OpenAI-kompatible Schnittstelle: Credential „OpenAI“ mit Base URL `http://<mini01>:11435/v1` und dem Token als API-Key
+- Credential „Ollama“ mit Base URL `http://<mini01>:11435` und dem Token im Feld „API Key“. Alle Ollama-Knoten in n8n (geprüft mit 2.42.6) schicken es als Bearer-Token mit.
+- Für die VM `ki-in-der-verwaltung` legt `import-ollama-credential.sh` im Repo `ki-verwaltung-server` die Credentials an, `ollama-check.sh` prüft den Weg.
+- Alternative: Credential „OpenAI“ mit Base URL `http://<mini01>:11435/v1` und dem Token als API-Key
 - Bilder gibt es nur über `POST /v1/images/generations`, nicht über `/api/generate`
 
 ## Später
